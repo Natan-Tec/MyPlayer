@@ -21,8 +21,10 @@ import java.util.concurrent.Executors
 class MainActivity : AppCompatActivity() {
 
     private val executor = Executors.newSingleThreadExecutor()
+    private val logoExecutor = Executors.newSingleThreadExecutor()
     private val ui = Handler(Looper.getMainLooper())
 
+    private lateinit var logos: LogoResolver
     private lateinit var adapter: ChannelAdapter
     private lateinit var status: TextView
     private lateinit var btnGroup: Button
@@ -45,7 +47,8 @@ class MainActivity : AppCompatActivity() {
 
         val list = findViewById<RecyclerView>(R.id.list)
         list.layoutManager = LinearLayoutManager(this)
-        adapter = ChannelAdapter { position -> openPlayer(position) }
+        logos = LogoResolver(applicationContext)
+        adapter = ChannelAdapter(logos) { position -> openPlayer(position) }
         list.adapter = adapter
 
         findViewById<Button>(R.id.btnUrl).setOnClickListener { askUrl() }
@@ -62,11 +65,21 @@ class MainActivity : AppCompatActivity() {
             cacheFile.exists() -> loadFromCache()
             else -> download()
         }
+
+        loadLogoIndex()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         executor.shutdownNow()
+        logoExecutor.shutdownNow()
+    }
+
+    /** Prepara a busca automática de logos em segundo plano. */
+    private fun loadLogoIndex() {
+        logoExecutor.execute {
+            if (logos.load()) ui.post { adapter.refreshLogos() }
+        }
     }
 
     // ---------- Carregar lista ----------
