@@ -31,7 +31,7 @@ object M3uParser {
                         Channel(
                             name = finalName,
                             url = line,
-                            group = group.ifEmpty { "Sem grupo" },
+                            group = GroupNames.translate(group),
                             logo = logo
                         )
                     )

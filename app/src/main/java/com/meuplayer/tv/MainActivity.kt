@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.text.InputType
+import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -16,6 +17,8 @@ import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.Collator
+import java.util.Locale
 import java.util.concurrent.Executors
 
 class MainActivity : AppCompatActivity() {
@@ -28,6 +31,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var adapter: ChannelAdapter
     private lateinit var status: TextView
     private lateinit var btnGroup: Button
+    private lateinit var lastView: TextView
+    private var suggestion: Channel? = null
 
     private var all: List<Channel> = emptyList()
     private var filtered: List<Channel> = emptyList()
@@ -44,6 +49,8 @@ class MainActivity : AppCompatActivity() {
 
         status = findViewById(R.id.status)
         btnGroup = findViewById(R.id.btnGroup)
+        lastView = findViewById(R.id.lastChannel)
+        lastView.setOnClickListener { suggestion?.let { openSuggested(it) } }
 
         val list = findViewById<RecyclerView>(R.id.list)
         list.layoutManager = LinearLayoutManager(this)
@@ -67,6 +74,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         loadLogoIndex()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Ao voltar do player, o canal assistido pode ter mudado.
+        updateSuggestion()
     }
 
     override fun onDestroy() {
@@ -150,10 +163,16 @@ class MainActivity : AppCompatActivity() {
 
     private fun showChannels(channels: List<Channel>) {
         all = channels
-        groups = channels.map { it.group }.distinct()
+        val collator = Collator.getInstance(Locale("pt", "BR"))
+        val names = channels.flatMap { GroupNames.split(it.group) }
+            .distinct()
+            .sortedWith { a, b -> collator.compare(a, b) }
+        // "Sem categoria" sempre por último.
+        groups = names.filter { it != GroupNames.NONE } + names.filter { it == GroupNames.NONE }
         currentGroup = prefs.getString("group", null)?.takeIf { it in groups }
         query = ""
         applyFilter()
+        updateSuggestion()
     }
 
     // ---------- Filtro e busca ----------
@@ -161,11 +180,11 @@ class MainActivity : AppCompatActivity() {
     private fun applyFilter() {
         val q = query.trim().lowercase()
         filtered = all.filter { ch ->
-            (currentGroup == null || ch.group == currentGroup) &&
+            (currentGroup == null || GroupNames.split(ch.group).contains(currentGroup)) &&
                 (q.isEmpty() || ch.name.lowercase().contains(q))
         }
         adapter.submit(filtered)
-        btnGroup.text = "Grupo: ${currentGroup ?: "Todos"}"
+        btnGroup.text = "Categoria: ${currentGroup ?: "Todas"}"
         status.text = when {
             all.isEmpty() -> "Nenhum canal encontrado. Confira o link em \"Lista\"."
             q.isNotEmpty() -> "${filtered.size} canais • busca: ${query.trim()}"
@@ -175,9 +194,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun pickGroup() {
         if (groups.isEmpty()) return
-        val items = (listOf("Todos") + groups).toTypedArray()
+        val items = (listOf("Todas") + groups).toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle("Grupo")
+            .setTitle("Categoria")
             .setItems(items) { _, which ->
                 currentGroup = if (which == 0) null else groups[which - 1]
                 prefs.edit().putString("group", currentGroup).apply()
@@ -235,6 +254,34 @@ class MainActivity : AppCompatActivity() {
     private fun openPlayer(position: Int) {
         PlayerState.channels = filtered
         PlayerState.index = position
+        startActivity(Intent(this, PlayerActivity::class.java))
+    }
+
+    // ---------- Sugestão: último canal assistido ----------
+
+    /** Mostra o último canal assistido acima da lista, em qualquer categoria. */
+    private fun updateSuggestion() {
+        val url = prefs.getString(PREF_LAST_URL, null)
+        val ch = if (url == null) null else all.firstOrNull { it.url == url }
+        suggestion = ch
+        if (ch == null) {
+            lastView.visibility = View.GONE
+        } else {
+            lastView.text = "▶  Continuar assistindo: ${ch.name}"
+            lastView.visibility = View.VISIBLE
+        }
+    }
+
+    private fun openSuggested(ch: Channel) {
+        val inFiltered = filtered.indexOfFirst { it.url == ch.url }
+        if (inFiltered >= 0) {
+            PlayerState.channels = filtered
+            PlayerState.index = inFiltered
+        } else {
+            // O canal não está na categoria aberta: o zapping passa por todos os canais.
+            PlayerState.channels = all
+            PlayerState.index = all.indexOfFirst { it.url == ch.url }.coerceAtLeast(0)
+        }
         startActivity(Intent(this, PlayerActivity::class.java))
     }
 }

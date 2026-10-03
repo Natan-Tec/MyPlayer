@@ -42,7 +42,7 @@ class ChannelAdapter(
     override fun onBindViewHolder(holder: VH, position: Int) {
         val ch = items[position]
         holder.name.text = ch.name
-        holder.group.text = ch.group
+        holder.group.text = GroupNames.display(ch.group)
         holder.initials.text = initialsOf(ch.name)
         bindLogo(holder, ch)
         holder.itemView.setOnClickListener {

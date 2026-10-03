@@ -31,7 +31,7 @@
             android:ellipsize="end"
             android:maxLines="1"
             android:minWidth="0dp"
-            android:text="Grupo: Todos"
+            android:text="Categoria: Todas"
             android:textAllCaps="false"
             android:textSize="13sp" />
 
@@ -67,6 +67,24 @@
         android:padding="8dp"
         android:textColor="@color/text_dim"
         android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/lastChannel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="6dp"
+        android:background="@drawable/suggestion_bg"
+        android:clickable="true"
+        android:ellipsize="end"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:maxLines="1"
+        android:minHeight="52dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:textColor="@color/text"
+        android:textSize="16sp"
+        android:visibility="gone" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"

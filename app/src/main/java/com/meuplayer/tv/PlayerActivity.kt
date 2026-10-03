@@ -135,6 +135,9 @@ class PlayerActivity : AppCompatActivity() {
     private fun play() {
         val ch = PlayerState.channels[index]
         PlayerState.index = index
+        getSharedPreferences("m3u", MODE_PRIVATE).edit()
+            .putString(PREF_LAST_URL, ch.url)
+            .apply()
         triedHls = false
         title.text = ch.name
         info.text = ""
