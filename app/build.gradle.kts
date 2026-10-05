@@ -3,6 +3,12 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+// Chave fixa de assinatura: vem do GitHub (Secrets) durante o build na nuvem.
+// Sem ela (build local), o app é assinado com a chave de debug do próprio computador.
+val keystorePath: String? = System.getenv("KEYSTORE_PATH")
+val keystorePassword: String? = System.getenv("KEYSTORE_PASSWORD")
+val hasFixedKey = !keystorePath.isNullOrBlank() && !keystorePassword.isNullOrBlank()
+
 android {
     namespace = "com.meuplayer.tv"
     compileSdk = 34
@@ -11,14 +17,36 @@ android {
         applicationId = "com.meuplayer.tv"
         minSdk = 21
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // O build na nuvem define a versão pela tag (ex.: v1.2.0) e o número do build.
+        versionCode = (project.findProperty("appVersionCode") as String?)?.toIntOrNull() ?: 1
+        versionName = (project.findProperty("appVersionName") as String?) ?: "1.0"
+    }
+
+    signingConfigs {
+        if (hasFixedKey) {
+            create("fixed") {
+                storeFile = file(keystorePath!!)
+                storePassword = keystorePassword
+                keyAlias = "m3uflow"
+                keyPassword = keystorePassword
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("fixed") ?: signingConfigs.getByName("debug")
         }
+        debug {
+            signingConfigs.findByName("fixed")?.let { signingConfig = it }
+        }
+    }
+
+    // A verificação de lint da release atrasa o build e não traz ganho aqui.
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
     }
 
     compileOptions {

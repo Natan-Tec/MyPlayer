@@ -3,7 +3,11 @@ name: Build APK
 on:
   push:
     branches: [main, master]
+    tags: ["v*"]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -20,10 +24,50 @@ jobs:
         with:
           gradle-version: 8.9
 
+      - name: Preparar a chave de assinatura
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/m3uflow.jks"
+            echo "KEYSTORE_PATH=$RUNNER_TEMP/m3uflow.jks" >> "$GITHUB_ENV"
+            echo "Assinando com a chave fixa."
+          elif [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            echo "::error::Release sem chave fixa. Crie os segredos KEYSTORE_BASE64 e KEYSTORE_PASSWORD no GitHub."
+            exit 1
+          else
+            echo "::warning::Sem chave fixa: este APK sai com uma chave temporária e não atualiza por cima do anterior."
+          fi
+
+      - name: Definir a versão
+        run: |
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="dev"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - name: Compilar APK
-        run: gradle assembleDebug --no-daemon
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        run: |
+          gradle assembleRelease --no-daemon \
+            -PappVersionName="$VERSION" \
+            -PappVersionCode="$GITHUB_RUN_NUMBER"
+          cp app/build/outputs/apk/release/app-release.apk "M3UFlow-$VERSION.apk"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MeuPlayer-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: M3UFlow-apk
+          path: M3UFlow-${{ env.VERSION }}.apk
+
+      - name: Publicar a Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" "M3UFlow-$VERSION.apk" \
+            --title "M3UFlow $VERSION" \
+            --generate-notes

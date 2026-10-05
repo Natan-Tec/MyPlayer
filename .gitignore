@@ -4,3 +4,7 @@ local.properties
 .idea/
 *.iml
 captures/
+# Nunca enviar chaves de assinatura para o repositório (ele é público)
+*.jks
+*.keystore
+segredos-*.txt
