@@ -12,74 +12,111 @@
 
     <ProgressBar
         android:id="@+id/loading"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
         android:layout_gravity="center"
         android:visibility="gone" />
 
-    <LinearLayout
+    <!-- Barra de baixo: nome e categoria à esquerda, hora à direita -->
+    <FrameLayout
         android:id="@+id/overlay"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@color/overlay"
-        android:orientation="vertical"
-        android:padding="16dp"
+        android:background="@drawable/player_bar_bg"
+        android:paddingStart="28dp"
+        android:paddingTop="44dp"
+        android:paddingEnd="28dp"
+        android:paddingBottom="16dp"
         android:visibility="gone">
-
-        <TextView
-            android:id="@+id/title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:textColor="#FFFFFF"
-            android:textSize="22sp" />
-
-        <TextView
-            android:id="@+id/info"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="#FFB4AB"
-            android:textSize="14sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:layout_gravity="start|bottom"
+            android:layout_marginEnd="130dp"
+            android:orientation="vertical">
 
-            <Button
-                android:id="@+id/btnPrev"
+            <TextView
+                android:id="@+id/title"
+                style="@style/T.Bold"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textSize="20sp" />
+
+            <TextView
+                android:id="@+id/subtitle"
+                style="@style/T"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/text_dim"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/info"
+                style="@style/T.Semi"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:lineSpacingExtra="2dp"
+                android:textColor="@color/error"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <!-- Só aparece em aparelhos de toque (celular), que não têm tecla de canal -->
+            <LinearLayout
+                android:id="@+id/touchControls"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:focusable="false"
-                android:text="◀ Anterior"
-                android:textAllCaps="false" />
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                android:visibility="gone">
 
-            <Button
-                android:id="@+id/btnNext"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:focusable="false"
-                android:text="Próximo ▶"
-                android:textAllCaps="false" />
+                <TextView
+                    android:id="@+id/btnPrev"
+                    style="@style/T.Bold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/player_btn_bg"
+                    android:clickable="true"
+                    android:paddingStart="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="8dp"
+                    android:text="◀  Anterior"
+                    android:textSize="12sp" />
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <!-- Hora do aparelho, atualizada sozinha pelo Android -->
-            <TextClock
-                android:id="@+id/clock"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:format12Hour="HH:mm"
-                android:format24Hour="HH:mm"
-                android:textColor="#FFFFFF"
-                android:textSize="26sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/btnNext"
+                    style="@style/T.Bold"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/player_btn_bg"
+                    android:clickable="true"
+                    android:paddingStart="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingEnd="16dp"
+                    android:paddingBottom="8dp"
+                    android:text="Próximo  ▶"
+                    android:textSize="12sp" />
+            </LinearLayout>
         </LinearLayout>
-    </LinearLayout>
+
+        <!-- Hora do aparelho, atualizada sozinha pelo Android -->
+        <TextClock
+            android:id="@+id/clock"
+            style="@style/T.Bold"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|bottom"
+            android:format12Hour="HH:mm"
+            android:format24Hour="HH:mm"
+            android:textSize="26sp" />
+    </FrameLayout>
 </FrameLayout>

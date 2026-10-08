@@ -1,11 +1,12 @@
 package com.meuplayer.tv
 
+import android.app.UiModeManager
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.KeyEvent
 import android.view.View
-import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -16,6 +17,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -47,6 +49,8 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var overlay: View
     private lateinit var title: TextView
     private lateinit var info: TextView
+    private lateinit var subtitle: TextView
+    private var videoHeight = 0
 
     private val handler = Handler(Looper.getMainLooper())
     private val hideOverlay = Runnable { overlay.visibility = View.GONE }
@@ -85,12 +89,18 @@ class PlayerActivity : AppCompatActivity() {
         overlay = findViewById(R.id.overlay)
         title = findViewById(R.id.title)
         info = findViewById(R.id.info)
+        subtitle = findViewById(R.id.subtitle)
 
         playerView.setOnClickListener {
             if (failed) play() else showOverlay()
         }
-        findViewById<Button>(R.id.btnPrev).setOnClickListener { change(-1) }
-        findViewById<Button>(R.id.btnNext).setOnClickListener { change(1) }
+        findViewById<View>(R.id.btnPrev).setOnClickListener { change(-1) }
+        findViewById<View>(R.id.btnNext).setOnClickListener { change(1) }
+
+        // Botões de anterior/próximo só no celular; na TV o controle tem as teclas de canal.
+        val uiMode = getSystemService(UI_MODE_SERVICE) as? UiModeManager
+        val isTv = uiMode?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        findViewById<View>(R.id.touchControls).visibility = if (isTv) View.GONE else View.VISIBLE
 
         hideSystemBars()
     }
@@ -134,9 +144,19 @@ class PlayerActivity : AppCompatActivity() {
                     handler.removeCallbacks(stallRunnable)
                     netRetries = 0
                     failed = false
-                    info.text = ""
+                    setInfo("")
                     showOverlay()
                 }
+            }
+
+            // Aprende a resolução real do canal: o selo dos cartões passa a mostrá-la.
+            override fun onVideoSizeChanged(videoSize: VideoSize) {
+                if (videoSize.height <= 0) return
+                videoHeight = videoSize.height
+                PlayerState.channels.getOrNull(index)?.let {
+                    ResolutionStore.put(applicationContext, it.url, videoSize.height)
+                }
+                updateSubtitle()
             }
 
             override fun onPlayerError(error: PlaybackException) {
@@ -170,10 +190,24 @@ class PlayerActivity : AppCompatActivity() {
         attemptIndex = 0
         netRetries = 0
         failed = false
-        title.text = ch.name
-        info.text = ""
+        videoHeight = 0
+        title.text = ch.displayName
+        updateSubtitle()
+        setInfo("")
         showOverlay()
         startAttempt()
+    }
+
+    /** Linha de baixo do nome: a categoria e, quando já se sabe, a resolução do vídeo. */
+    private fun updateSubtitle() {
+        val ch = PlayerState.channels.getOrNull(index) ?: return
+        val res = if (videoHeight > 0) ResolutionStore.label(videoHeight) else null
+        subtitle.text = listOfNotNull(GroupNames.display(ch.group), res).joinToString("  •  ")
+    }
+
+    private fun setInfo(text: String) {
+        info.text = text
+        info.visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
     }
 
     /** Monta a lista de formas de abrir o canal, da mais provável para a menos provável. */
@@ -283,7 +317,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun scheduleRestart(delayMs: Long) {
         loading.visibility = View.VISIBLE
-        info.text = "Tentando outro método (${attemptIndex + 1}/${attempts.size})…"
+        setInfo("Tentando outro método (${attemptIndex + 1}/${attempts.size})…")
         showOverlay(persist = true)
         handler.removeCallbacks(restartRunnable)
         handler.postDelayed(restartRunnable, delayMs)
@@ -292,7 +326,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun showFailure(message: String) {
         failed = true
         loading.visibility = View.GONE
-        info.text = "$message\nPressione OK para tentar de novo ou troque de canal."
+        setInfo("$message\nPressione OK para tentar de novo ou troque de canal.")
         showOverlay(persist = true)
     }
 

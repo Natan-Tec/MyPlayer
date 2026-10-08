@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.meuplayer.tv.GlassLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/topbar"
+    android:layout_width="match_parent"
+    android:layout_height="46dp"
+    android:layout_marginStart="10dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="10dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="center"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/navHome"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/nav_bg"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_home" />
+        </FrameLayout>
+
+        <ImageView
+            android:id="@+id/navLogo"
+            android:layout_width="44dp"
+            android:layout_height="34dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:importantForAccessibility="no"
+            android:scaleType="fitCenter"
+            android:src="@drawable/logo_symbol" />
+
+        <FrameLayout
+            android:id="@+id/navSettings"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="@drawable/nav_bg"
+            android:clickable="true"
+            android:focusable="true">
+
+            <ImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_settings" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <TextClock
+        android:id="@+id/clock"
+        style="@style/T.Bold"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="18dp"
+        android:format12Hour="HH:mm"
+        android:format24Hour="HH:mm"
+        android:textSize="15sp" />
+</com.meuplayer.tv.GlassLayout>

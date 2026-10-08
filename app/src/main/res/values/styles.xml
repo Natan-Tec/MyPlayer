@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Texto padrão do app: Montserrat em quatro pesos -->
+    <style name="T" parent="">
+        <item name="android:textColor">@color/text</item>
+        <item name="android:fontFamily">@font/montserrat_regular</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <style name="T.Semi">
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
+    </style>
+
+    <style name="T.Bold">
+        <item name="android:fontFamily">@font/montserrat_bold</item>
+    </style>
+
+    <style name="T.Black">
+        <item name="android:fontFamily">@font/montserrat_extrabold</item>
+    </style>
+</resources>

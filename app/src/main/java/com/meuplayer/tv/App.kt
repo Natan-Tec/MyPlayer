@@ -10,6 +10,12 @@ import okhttp3.OkHttpClient
 /** Configura o carregador de imagens de forma leve para TVs com pouca memória. */
 class App : Application(), ImageLoaderFactory {
 
+    override fun onCreate() {
+        super.onCreate()
+        // Ajustes de aparência (brilho, vidro...) valem para todas as telas.
+        LookStore.load(this)
+    }
+
     override fun newImageLoader(): ImageLoader {
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->

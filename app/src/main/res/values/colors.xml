@@ -1,8 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg">#121212</color>
+    <color name="bg">#0B5C9E</color>
+    <color name="blue_top">#1794DA</color>
+    <color name="blue_bottom">#073F7A</color>
+    <color name="accent">#1794DA</color>
     <color name="text">#FFFFFF</color>
-    <color name="text_dim">#B0B0B0</color>
-    <color name="focus">#3D5AFE</color>
-    <color name="overlay">#CC000000</color>
+    <color name="text_dim">#CFE6F7</color>
+    <color name="hint">#8FB8D8</color>
+    <color name="tile_white">#F7FBFF</color>
+    <color name="placeholder_icon">#9DB2C4</color>
+    <color name="overlay">#B3000000</color>
+    <color name="error">#FFB4AB</color>
+    <color name="focus_pill">#4DFFFFFF</color>
+    <color name="select_pill">#29FFFFFF</color>
+    <color name="input_bg">#26FFFFFF</color>
 </resources>
