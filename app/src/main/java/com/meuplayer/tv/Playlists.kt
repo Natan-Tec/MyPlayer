@@ -1,6 +1,7 @@
 package com.meuplayer.tv
 
 import android.content.Context
+import android.net.Uri
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
@@ -9,7 +10,16 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
 
-data class Playlist(val id: String, val name: String, val url: String)
+/** Listas vindas de arquivo guardam "local:" + nome do arquivo no lugar do link. */
+const val LOCAL_PREFIX = "local:"
+
+data class Playlist(val id: String, val name: String, val url: String) {
+    val isLocal: Boolean get() = url.startsWith(LOCAL_PREFIX)
+
+    /** O que mostrar como "endereço" da lista nas telas. */
+    val where: String
+        get() = if (isLocal) "Arquivo local · " + url.removePrefix(LOCAL_PREFIX) else url
+}
 
 /** As listas que o usuário adicionou e qual delas está ativa. */
 object PlaylistStore {
@@ -66,7 +76,43 @@ object PlaylistStore {
         return p
     }
 
+    /** Adiciona uma lista a partir de um arquivo escolhido no aparelho: guarda uma cópia no app. */
+    @Throws(IOException::class)
+    fun addLocal(ctx: Context, uri: Uri, displayName: String): Playlist {
+        val id = UUID.randomUUID().toString().take(8)
+        val dest = localFile(ctx, id)
+        val input = ctx.contentResolver.openInputStream(uri) ?: throw IOException("Não foi possível abrir o arquivo")
+        input.use { src -> dest.outputStream().use { out -> src.copyTo(out) } }
+        val channels = try {
+            dest.inputStream().use { M3uParser.parse(it) }
+        } catch (e: Exception) {
+            dest.delete()
+            throw IOException("Arquivo inválido")
+        }
+        if (channels.isEmpty()) {
+            dest.delete()
+            throw IOException("Nenhum canal encontrado no arquivo")
+        }
+        val lists = all(ctx).toMutableList()
+        val p = Playlist(
+            id,
+            displayName.substringBeforeLast('.').trim().ifEmpty { "Minha lista" },
+            LOCAL_PREFIX + displayName
+        )
+        lists.add(p)
+        write(ctx, lists)
+        setActive(ctx, p.id)
+        return p
+    }
+
     fun update(ctx: Context, id: String, name: String, url: String) {
+        val current = all(ctx).firstOrNull { it.id == id } ?: return
+        if (current.isLocal) {
+            // Lista de arquivo: só o nome muda; o arquivo guardado continua o mesmo.
+            val newName = name.trim().ifEmpty { current.name }
+            write(ctx, all(ctx).map { if (it.id == id) Playlist(id, newName, current.url) else it })
+            return
+        }
         val newUrl = url.trim()
         val lists = all(ctx).map {
             if (it.id == id) Playlist(id, name.trim().ifEmpty { suggestName(newUrl) }, newUrl) else it
@@ -80,6 +126,7 @@ object PlaylistStore {
         val wasActive = active(ctx)?.id == id
         write(ctx, all(ctx).filter { it.id != id })
         cacheFile(ctx, id).delete()
+        localFile(ctx, id).delete()
         if (wasActive) {
             all(ctx).firstOrNull()?.let { setActive(ctx, it.id) }
                 ?: prefs(ctx).edit().remove(KEY_ACTIVE).apply()
@@ -88,6 +135,13 @@ object PlaylistStore {
 
     fun cacheFile(ctx: Context, id: String): File {
         val dir = File(ctx.applicationContext.cacheDir, "lists")
+        dir.mkdirs()
+        return File(dir, "$id.m3u")
+    }
+
+    /** Cópia do arquivo local. Fica fora do cache, então "Limpar cache" não apaga. */
+    fun localFile(ctx: Context, id: String): File {
+        val dir = File(ctx.applicationContext.filesDir, "local_lists")
         dir.mkdirs()
         return File(dir, "$id.m3u")
     }
@@ -117,7 +171,7 @@ object PlaylistRepo {
     private const val STALE_MS = 12L * 60 * 60 * 1000
 
     fun cached(ctx: Context, p: Playlist): List<Channel>? {
-        val f = PlaylistStore.cacheFile(ctx, p.id)
+        val f = if (p.isLocal) PlaylistStore.localFile(ctx, p.id) else PlaylistStore.cacheFile(ctx, p.id)
         if (!f.exists()) return null
         return try {
             f.inputStream().use { M3uParser.parse(it) }
@@ -127,12 +181,18 @@ object PlaylistRepo {
     }
 
     fun isStale(ctx: Context, p: Playlist): Boolean {
+        if (p.isLocal) return false // arquivo local não tem de onde "atualizar"
         val f = PlaylistStore.cacheFile(ctx, p.id)
         return !f.exists() || System.currentTimeMillis() - f.lastModified() > STALE_MS
     }
 
     @Throws(IOException::class)
     fun download(ctx: Context, p: Playlist): List<Channel> {
+        if (p.isLocal) {
+            val local = PlaylistStore.localFile(ctx, p.id)
+            if (!local.exists()) throw IOException("O arquivo da lista não está mais no app. Adicione de novo.")
+            return local.inputStream().use { M3uParser.parse(it) }
+        }
         val f = PlaylistStore.cacheFile(ctx, p.id)
         fetch(p.url, f)
         return f.inputStream().use { M3uParser.parse(it) }

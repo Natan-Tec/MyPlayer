@@ -1,10 +1,14 @@
 package com.meuplayer.tv
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import java.util.concurrent.Executors
 
@@ -16,6 +20,11 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var btnAdd: View
     private lateinit var btnSettings: View
     private var firstFocusDone = false
+
+    // Escolher o arquivo .m3u no aparelho (seletor de arquivos do Android).
+    private val pickFile = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) importLocal(uri)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,9 +41,7 @@ class HomeActivity : AppCompatActivity() {
         btnSettings = findViewById(R.id.btnSettings)
 
         setupTile(btnLive, R.drawable.ic_live_tv, "TV AO VIVO") { openLive() }
-        setupTile(btnAdd, R.drawable.ic_add, "ADICIONAR LISTA") {
-            ListDialogs.add(this) { startActivity(Intent(this, ChannelsActivity::class.java)) }
-        }
+        setupTile(btnAdd, R.drawable.ic_add, "ADICIONAR LISTA") { addList() }
         setupTile(btnSettings, R.drawable.ic_settings, "CONFIGURAÇÕES") {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -73,10 +80,59 @@ class HomeActivity : AppCompatActivity() {
 
     private fun openLive() {
         if (PlaylistStore.all(this).isEmpty()) {
-            toast("Primeiro adicione uma lista (link .m3u).")
-            ListDialogs.add(this) { startActivity(Intent(this, ChannelsActivity::class.java)) }
+            toast("Primeiro adicione uma lista (link ou arquivo .m3u).")
+            addList()
         } else {
             startActivity(Intent(this, ChannelsActivity::class.java))
         }
+    }
+
+    private fun addList() {
+        ListDialogs.add(this, onPickFile = { launchPicker() }) {
+            startActivity(Intent(this, ChannelsActivity::class.java))
+        }
+    }
+
+    private fun launchPicker() {
+        try {
+            // Os tipos de .m3u variam de aparelho para aparelho, então aceita qualquer arquivo.
+            pickFile.launch(arrayOf("*/*"))
+        } catch (e: ActivityNotFoundException) {
+            toast("Este aparelho não tem um seletor de arquivos.")
+        }
+    }
+
+    private fun importLocal(uri: Uri) {
+        val app = applicationContext
+        toast("Lendo o arquivo…")
+        executor.execute {
+            try {
+                val name = displayName(uri)
+                val p = PlaylistStore.addLocal(app, uri, name)
+                runOnUiThread {
+                    if (!isFinishing) {
+                        toast("Lista adicionada: ${p.name}")
+                        startActivity(Intent(this, ChannelsActivity::class.java))
+                    }
+                }
+            } catch (e: Exception) {
+                val why = e.message ?: e.javaClass.simpleName
+                runOnUiThread { if (!isFinishing) toast("Não foi possível usar o arquivo: $why") }
+            }
+        }
+    }
+
+    private fun displayName(uri: Uri): String {
+        try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val n = c.getString(0)
+                    if (!n.isNullOrBlank()) return n
+                }
+            }
+        } catch (e: Exception) {
+            // Sem nome: usa o final do endereço.
+        }
+        return uri.lastPathSegment?.substringAfterLast('/')?.ifBlank { null } ?: "lista.m3u"
     }
 }

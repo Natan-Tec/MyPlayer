@@ -159,7 +159,16 @@ object ListDialogs {
         ""
     }
 
-    fun add(activity: Activity, onDone: (Playlist) -> Unit) {
+    /** Primeiro pergunta de onde vem a lista: link (URL) ou arquivo do aparelho. */
+    fun add(activity: Activity, onPickFile: () -> Unit, onDone: (Playlist) -> Unit) {
+        GlassDialog(activity, "Adicionar Lista:")
+            .option("URL", "Colar o link da lista (http:// ou https://)") { addUrl(activity, onDone) }
+            .option("Local", "Escolher um arquivo .m3u guardado neste aparelho") { onPickFile() }
+            .button("Cancelar")
+            .show()
+    }
+
+    private fun addUrl(activity: Activity, onDone: (Playlist) -> Unit) {
         val d = GlassDialog(activity, "Adicionar Lista:")
         val link = d.field(null, "Digite o link aqui", clipboardUrl(activity), uri = true)
         d.button("Cancelar")
@@ -180,11 +189,12 @@ object ListDialogs {
     fun edit(activity: Activity, p: Playlist, onDone: () -> Unit) {
         val d = GlassDialog(activity, "Editar lista:")
         val name = d.field("Nome", "Nome da lista", p.name)
-        val link = d.field("Link", "http://.../lista.m3u", p.url, uri = true)
+        // Lista de arquivo local não tem link para editar.
+        val link = if (p.isLocal) null else d.field("Link", "http://.../lista.m3u", p.url, uri = true)
         d.button("Cancelar")
         d.button("Salvar", dismiss = false) {
-            val url = link.text.toString().trim()
-            if (!isValidUrl(url)) {
+            val url = link?.text?.toString()?.trim() ?: p.url
+            if (!p.isLocal && !isValidUrl(url)) {
                 activity.toast("Digite um link que comece com http:// ou https://")
             } else {
                 d.dismiss()

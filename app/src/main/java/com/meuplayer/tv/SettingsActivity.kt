@@ -92,7 +92,7 @@ class SettingsActivity : AppCompatActivity() {
         } else {
             for (p in lists) {
                 val isActive = p.id == active?.id
-                row(p.name, (if (isActive) "Lista ativa  •  " else "") + p.url) { listActions(p, isActive) }
+                row(p.name, (if (isActive) "Lista ativa  •  " else "") + p.where) { listActions(p, isActive) }
             }
         }
 
@@ -199,7 +199,7 @@ class SettingsActivity : AppCompatActivity() {
     // ---------- Listas ----------
 
     private fun listActions(p: Playlist, isActive: Boolean) {
-        val d = GlassDialog(this, p.name).message(p.url)
+        val d = GlassDialog(this, p.name).message(p.where)
         if (!isActive) {
             d.option("Usar esta lista", "É a lista que abre em TV AO VIVO") {
                 PlaylistStore.setActive(this, p.id)
@@ -207,8 +207,8 @@ class SettingsActivity : AppCompatActivity() {
                 render()
             }
         }
-        d.option("Atualizar agora", "Baixa a lista de novo") { refreshList(p) }
-        d.option("Editar", "Mudar o nome ou o link") { ListDialogs.edit(this, p) { render() } }
+        d.option("Atualizar agora", if (p.isLocal) "Lê o arquivo guardado de novo" else "Baixa a lista de novo") { refreshList(p) }
+        d.option("Editar", if (p.isLocal) "Mudar o nome" else "Mudar o nome ou o link") { ListDialogs.edit(this, p) { render() } }
         d.option("Apagar", "Remove a lista do app") { confirmDelete(p) }
         d.button("Fechar")
         d.show()
