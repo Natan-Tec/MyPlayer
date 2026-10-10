@@ -30,7 +30,12 @@ import androidx.media3.extractor.ts.DefaultTsPayloadReaderFactory
 import androidx.media3.ui.PlayerView
 import okhttp3.OkHttpClient
 import java.net.URI
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 @androidx.annotation.OptIn(UnstableApi::class)
 class PlayerActivity : AppCompatActivity() {
@@ -40,7 +45,9 @@ class PlayerActivity : AppCompatActivity() {
         val url: String,
         val userAgent: String,
         val headers: Map<String, String>,
-        val forceHls: Boolean
+        val forceHls: Boolean,
+        /** Última cartada: aceita certificado HTTPS inválido ou vencido (só se o usuário ligou a opção). */
+        val insecure: Boolean = false
     )
 
     private var player: ExoPlayer? = null
@@ -70,6 +77,20 @@ class PlayerActivity : AppCompatActivity() {
             .followRedirects(true)
             .followSslRedirects(true)
             .retryOnConnectionFailure(true)
+            .build()
+    }
+
+    /** Cliente que não valida certificados. Só é usado nas tentativas marcadas como `insecure`. */
+    private val insecureClient: OkHttpClient by lazy {
+        val trustAll = object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>?, authType: String?) {}
+            override fun checkServerTrusted(chain: Array<X509Certificate>?, authType: String?) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = emptyArray()
+        }
+        val ssl = SSLContext.getInstance("TLS").apply { init(null, arrayOf<TrustManager>(trustAll), SecureRandom()) }
+        okClient.newBuilder()
+            .sslSocketFactory(ssl.socketFactory, trustAll)
+            .hostnameVerifier { _, _ -> true }
             .build()
     }
 
@@ -219,8 +240,10 @@ class PlayerActivity : AppCompatActivity() {
         val baseHeaders = ch.headers.filterKeys { !it.equals("User-Agent", ignoreCase = true) }
         val primaryUa = playlistUa ?: USER_AGENT
         val hasM3u8 = ch.url.contains(".m3u8", ignoreCase = true)
-        val referer = originOf(ch.url)?.let { mapOf("Referer" to it) }.orEmpty()
-        val withReferer = referer + baseHeaders // o Referer da lista, se houver, tem prioridade
+        val origin = originOf(ch.url)
+        val referer = origin?.let { mapOf("Referer" to it, "Origin" to it.trimEnd('/')) }.orEmpty()
+        // Referer e Origin da lista, se houver, têm prioridade sobre os automáticos.
+        val withReferer = referer + baseHeaders
 
         // 1) Do jeito que a lista pede (ou como o VLC faria).
         add(Attempt(ch.url, primaryUa, baseHeaders, false))
@@ -236,6 +259,12 @@ class PlayerActivity : AppCompatActivity() {
             add(Attempt(alt, primaryUa, baseHeaders, false))
             if (!hasM3u8) add(Attempt(alt, primaryUa, baseHeaders, true))
         }
+        // 5) Só se o usuário permitiu em Configurações: ignora certificado HTTPS inválido ou vencido.
+        val allowInsecure = getSharedPreferences("m3u", MODE_PRIVATE).getBoolean(PREF_INSECURE_SSL, false)
+        if (allowInsecure) {
+            add(Attempt(ch.url, primaryUa, baseHeaders, false, insecure = true))
+            if (!hasM3u8) add(Attempt(ch.url, primaryUa, baseHeaders, true, insecure = true))
+        }
         return list
     }
 
@@ -243,7 +272,7 @@ class PlayerActivity : AppCompatActivity() {
         val p = player ?: return
         val a = attempts.getOrNull(attemptIndex) ?: return
 
-        val dataSource = OkHttpDataSource.Factory(okClient)
+        val dataSource = OkHttpDataSource.Factory(if (a.insecure) insecureClient else okClient)
             .setUserAgent(a.userAgent)
             .setDefaultRequestProperties(a.headers)
 

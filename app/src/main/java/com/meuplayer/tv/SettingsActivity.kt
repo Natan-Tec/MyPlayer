@@ -101,6 +101,19 @@ class SettingsActivity : AppCompatActivity() {
         row("Limpar cache", "Apaga as capas baixadas, as listas salvas e os arquivos de atualização") { clearCache() }
         refreshStorage()
 
+        section("REPRODUÇÃO")
+        val prefs = getSharedPreferences("m3u", MODE_PRIVATE)
+        fun sslLabel() = if (prefs.getBoolean(PREF_INSECURE_SSL, false)) "Ligado" else "Desligado"
+        lateinit var sslRow: Row
+        sslRow = row(
+            "Aceitar certificados inválidos",
+            "Como última tentativa, o canal abre mesmo com certificado HTTPS vencido ou inválido. Menos seguro: ligue só se canais https falham.",
+            sslLabel()
+        ) {
+            prefs.edit().putBoolean(PREF_INSECURE_SSL, !prefs.getBoolean(PREF_INSECURE_SSL, false)).apply()
+            sslRow.value.text = sslLabel()
+        }
+
         section("ATUALIZAÇÃO")
         row("Versão instalada", "M3UFlow ${Updater.installedVersion(this)}")
         updateSub = row("Verificar atualizações", "Procura uma versão nova no GitHub") { checkUpdate() }.sub
