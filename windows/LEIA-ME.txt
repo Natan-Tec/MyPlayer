@@ -1,0 +1,24 @@
+M3UFlow para Windows
+====================
+
+COMO USAR
+1. Extraia esta pasta inteira (botão direito no .zip > Extrair tudo).
+2. Abra o arquivo M3UFlow.exe (nao precisa instalar nada).
+3. Na tela inicial, escolha ADICIONAR LISTA e cole o link da sua lista M3U
+   ou escolha um arquivo .m3u do computador.
+
+SE O WINDOWS AVISAR "O Windows protegeu o computador"
+O app nao tem assinatura paga da Microsoft, entao o aviso e normal.
+Clique em "Mais informacoes" e depois em "Executar assim mesmo".
+
+TECLAS
+  Setas ............. navegar
+  Enter ............. abrir / confirmar
+  Esc ............... voltar
+  Ctrl+F ou digitar . buscar canal
+  F11 ............... tela cheia
+  No player: setas para cima/baixo trocam de canal, esquerda/direita mudam o
+  volume, M deixa mudo, F tela cheia.
+
+Esta e uma versao unica: nao se atualiza sozinha.
+Seus dados (listas e preferencias) ficam em %APPDATA%\M3UFlow.
