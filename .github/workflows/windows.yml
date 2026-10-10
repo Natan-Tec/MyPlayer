@@ -34,7 +34,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Continue"
-          $out = & npx --no-install electron-packager . M3UFlow --platform=win32 --arch=x64 --out=dist --overwrite --asar --icon=build/icon.ico --app-version=1.0.0 --win32metadata.ProductName=M3UFlow --win32metadata.FileDescription=M3UFlow "--ignore=^/(test|dist|\.gitignore|LEIA-ME\.txt)" 2>&1 | Out-String
+          $out = & node scripts/package.js 2>&1 | Out-String
           $code = $LASTEXITCODE
           Write-Host $out
           if ($code -ne 0 -or -not (Test-Path dist/M3UFlow-win32-x64/M3UFlow.exe)) {
