@@ -502,7 +502,6 @@
     if (!first) return;
     const img = new Image();
     img.decoding = 'async';
-    img.loading = 'lazy';
     img.alt = '';
     img.addEventListener('load', () => { initials.hidden = true; card.dataset.hasLogo = '1'; });
     img.addEventListener('error', () => {
@@ -510,8 +509,25 @@
       img.dataset.tried = '1';
       if (primary && fallback && fallback !== primary) img.src = fallback; else img.remove();
     });
-    img.src = first;
+    img.dataset.src = first;
     area.insertBefore(img, initials);
+    logoObserver().observe(card);
+  }
+
+  // Só baixa a capa dos cartões que estão (ou estão quase) na tela.
+  let logoObs = null;
+  function logoObserver() {
+    if (!logoObs) {
+      logoObs = new IntersectionObserver((entries) => {
+        for (const en of entries) {
+          if (!en.isIntersecting) continue;
+          logoObs.unobserve(en.target);
+          const im = en.target.querySelector('.logo-area img');
+          if (im && !im.src && im.dataset.src) im.src = im.dataset.src;
+        }
+      }, { root: gridEl, rootMargin: '400px 0px' });
+    }
+    return logoObs;
   }
 
   function renderGrid() {
@@ -533,8 +549,10 @@
       const lb = badgeFor(ch);
       if (lb) { badge.textContent = lb; badge.hidden = false; }
     });
+    if (logoObs) logoObs.disconnect();
     gridEl.textContent = '';
     gridEl.appendChild(frag);
+    for (const c of gridEl.children) if (c.querySelector('.logo-area img')) logoObserver().observe(c);
   }
 
   function refreshBadges() {
