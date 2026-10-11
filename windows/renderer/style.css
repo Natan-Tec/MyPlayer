@@ -105,8 +105,8 @@ button { font: inherit; color: inherit; border: 0; background: none; cursor: poi
 .card {
   display: flex; flex-direction: column; background: rgba(255, 255, 255, 0.20); border-radius: 12px; overflow: hidden; text-align: center;
 }
-.card .logo-area { position: relative; height: 92px; background: #F7FBFF; display: grid; place-items: center; border-radius: 10px; margin: 6px 6px 0; }
-.card .logo-area img { max-width: calc(100% - 20px); max-height: calc(100% - 16px); object-fit: contain; }
+.card .logo-area { position: relative; flex: none; height: 92px; background: #F7FBFF; border-radius: 10px; margin: 6px 6px 0; overflow: hidden; }
+.card .logo-area img { position: absolute; top: 8px; left: 10px; width: calc(100% - 20px); height: calc(100% - 16px); object-fit: contain; }
 .card .initials { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 700; font-size: 26px; color: #9DB2C4; }
 .card .badge { position: absolute; right: 5px; bottom: 5px; background: var(--accent); color: #fff; font-weight: 700; font-size: 9px; padding: 2px 6px; border-radius: 4px; }
 .card .name { padding: 9px 8px 10px; font-weight: 700; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
